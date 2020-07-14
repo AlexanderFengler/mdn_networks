@@ -28,21 +28,19 @@ epochs = 700
 print_every = 1
 losses = []
 
+# MAKE TRAINING DATA
 (x, y, z, z_test) = td.create_gauss_pillars(n = 20000, n_c = 5)
 
 
 plt.figure()
 ax = plt.axes(projection = '3d')
-# x, y, z, z_test = create_spiral(n = 20000, 
-#                                 noise_range = 1, 
-#                                 freq_base = 2)
-#train_labels = np.concatenate([x,y], axis = 1)
-
 ax.scatter3D(z, x, y, c = z[:, 0], alpha = 0.2, cmap = 'Greens');
 #plt.show(block = False)
 plt.savefig('training_data.png')
 plt.close()
 
+
+# TURN INTO TF DATASET CLASS
 train_labels = np.concatenate([x,y], axis = 1)
 N = train_labels.shape[0]
 
@@ -50,10 +48,11 @@ dataset = tf.data.Dataset \
           .from_tensor_slices((z, train_labels)) \
           .shuffle(N).batch(batch_size)
 
+# GET NETWORK AND LOSS
 mdn_network, mdn_optimizer = mdnn.get_mdn_iso()
 loss_fun = mdnn.mdn_loss_iso
 
- # Start training
+# TRAINING LOOP
 print('Print every {} epochs'.format(print_every))
 for i in range(epochs):
     for train_features, train_labels in dataset:
@@ -62,6 +61,7 @@ for i in range(epochs):
     if i % print_every == 0:
         print('Epoch {}/{}: loss {}'.format(i, epochs, losses[- 1]))  
 
+# LOSS PLOT
 plt.figure()
 plt.plot(range(len(losses)), losses)
 plt.xlabel('Epochs')
@@ -70,21 +70,19 @@ plt.title('Training')
 plt.savefig('loss_history.png')
 plt.close()
 
-# Get model outputs
+# GET MODEL PREDICTIONS ( MIXTURE PARAMETERS) ON SOME TEST INPUTS
 pi_vals, mu_vals, var_vals = mdn_network.predict(z_test)
 #print(pi_vals.shape, mu_vals.shape, var_vals.shape)
 
-# Get random predictions from those outputs
+# SAMPLE FROM MIXTURE PARAMETERS
 print('Sampling from model')
 sampled_predictions = mdnn.sample_predictions_mdn(pi_vals, mu_vals, var_vals, samples = 10)
-
 
 plt.figure()
 ax = plt.axes(projection = '3d')
 #x_det, y_det, z_det, z_test_det = create_spiral(n = 10000, noise_range = 0.01, freq_base = 2)
 
-# Data for three-dimensional scattered points
-
+# PLOT SAMPLES FROM MODEL
 print('Plotting model samples')
 for i in range(10):
     ax.scatter3D(z_test, sampled_predictions[:, i, 0], sampled_predictions[:, i, 1], c = z_test[:, 0], alpha = 0.05, cmap = 'Greens') #cmap = 'Greens', alpha = 0.2);
